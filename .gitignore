@@ -1,0 +1,13 @@
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.user
+*.suo
+node_modules/
+dist/
+.env
+.DS_Store
+.vs/
+.vscode/
+frontend/dist/
+frontend/node_modules/
