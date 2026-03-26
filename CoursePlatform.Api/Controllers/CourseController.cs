@@ -41,7 +41,7 @@ public class CourseController(ICourseService courseService) : ControllerBase
             var result = await courseService.PublishCourse(id);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }

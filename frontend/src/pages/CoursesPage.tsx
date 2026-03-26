@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Course } from '../types';
+import type { Course } from '../types';
 import { Plus, Search, Filter, BookOpen, Trash2, Edit3, CheckCircle, XCircle, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -20,9 +20,10 @@ const CoursesPage = () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await api.get('/courses/search', {
-        params: { q: search, status, page, pageSize: 6 }
-      });
+      const queryParams: any = { page, pageSize: 6 };
+      if (search) queryParams.q = search;
+      if (status) queryParams.status = status;
+      const response = await api.get('/courses/search', { params: queryParams });
       setCourses(response.data.items);
       setTotalCount(response.data.totalCount);
     } catch (err) {
@@ -44,7 +45,10 @@ const CoursesPage = () => {
       setEditingCourse(null);
       setTitle('');
       fetchCourses();
-    } catch (err) { console.error(err); }
+    } catch (err: any) { 
+      console.error(err); 
+      alert(err.response?.data?.message || 'Error al guardar el curso');
+    }
   };
 
   const handleDelete = async (id: string) => {

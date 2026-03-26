@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Lesson, CourseSummary } from '../types';
+import type { Lesson, CourseSummary } from '../types';
 import { Plus, Trash2, Edit3, ArrowUp, ArrowDown, ChevronLeft, BookOpen, Clock, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

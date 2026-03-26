@@ -74,11 +74,12 @@ public class CourseService(ICourseDbContext context) : ICourseService
         }
 
         var totalCount = await query.CountAsync();
-        var items = await query.OrderByDescending(c => c.CreatedAt)
+        var entities = await query.OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => ToDto(c))
             .ToListAsync();
+
+        var items = entities.Select(c => ToDto(c)).ToList();
 
         return (items, totalCount);
     }
@@ -97,5 +98,5 @@ public class CourseService(ICourseDbContext context) : ICourseService
         );
     }
 
-    private CourseDto ToDto(Course c) => new CourseDto(c.Id, c.Title, c.Status, c.CreatedAt, c.UpdatedAt);
+    private static CourseDto ToDto(Course c) => new CourseDto(c.Id, c.Title, c.Status, c.CreatedAt, c.UpdatedAt);
 }

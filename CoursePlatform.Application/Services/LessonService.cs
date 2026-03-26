@@ -58,12 +58,13 @@ public class LessonService(ICourseDbContext context) : ILessonService
 
     public async Task<IEnumerable<LessonDto>> GetLessonsByCourse(Guid courseId)
     {
-        return await context.Lessons
+        var entities = await context.Lessons
             .Where(l => l.CourseId == courseId)
             .OrderBy(l => l.Order)
-            .Select(l => ToDto(l))
             .ToListAsync();
+
+        return entities.Select(l => ToDto(l));
     }
 
-    private LessonDto ToDto(Lesson l) => new LessonDto(l.Id, l.CourseId, l.Title, l.Order, l.CreatedAt, l.UpdatedAt);
+    private static LessonDto ToDto(Lesson l) => new LessonDto(l.Id, l.CourseId, l.Title, l.Order, l.CreatedAt, l.UpdatedAt);
 }

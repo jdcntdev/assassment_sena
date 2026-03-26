@@ -102,15 +102,29 @@ using (var scope = app.Services.CreateScope())
     
     context.Database.EnsureCreated(); // Ensure DB is created or use Migrate()
 
-    if (!userManager.Users.Any())
+    // Roles and Admin User
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    string[] roleNames = { "Admin", "Student" };
+    foreach (var roleName in roleNames)
     {
-        var user = new ApplicationUser
+        if (!await roleManager.RoleExistsAsync(roleName))
         {
-            UserName = "test@example.com",
-            Email = "test@example.com",
-            FullName = "Usuario de Prueba"
-        };
-        await userManager.CreateAsync(user, "test1234");
+            try { await roleManager.CreateAsync(new IdentityRole<Guid>(roleName)); } catch { }
+        }
+    }
+
+    if (await userManager.FindByEmailAsync("test@example.com") == null)
+    {
+        var testUser = new ApplicationUser { UserName = "test@example.com", Email = "test@example.com", FullName = "Estudiante Prueba" };
+        await userManager.CreateAsync(testUser, "test1234");
+        await userManager.AddToRoleAsync(testUser, "Student");
+    }
+
+    if (await userManager.FindByEmailAsync("admin@example.com") == null)
+    {
+        var adminUser = new ApplicationUser { UserName = "admin@example.com", Email = "admin@example.com", FullName = "Administrador" };
+        await userManager.CreateAsync(adminUser, "admin123");
+        await userManager.AddToRoleAsync(adminUser, "Admin");
     }
 }
 
