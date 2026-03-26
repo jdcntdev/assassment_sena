@@ -79,6 +79,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Application Services
+builder.Services.AddScoped<ICourseDbContext>(provider => provider.GetRequiredService<CourseDbContext>());
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
