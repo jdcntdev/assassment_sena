@@ -37,50 +37,118 @@ Muestra la estructura estática y las relaciones del Modelo de Dominio de Proyec
 
 ```mermaid
 classDiagram
-    class BaseEntity {
+    %% ==========================================
+    %% CAPA DE DOMINIO (Entidades y Enums)
+    %% ==========================================
+    class ApplicationUser {
         +Guid Id
-        +bool IsDeleted
-        +DateTime CreatedAt
-        +DateTime UpdatedAt
+        +string UserName
+        +string Email
+        +string FullName
     }
-    
     class Project {
+        +Guid Id
         +string Name
         +string Description
-        +int Status
+        +ProjectStatus Status
+        +bool IsDeleted
     }
-    
     class TaskItem {
+        +Guid Id
         +Guid ProjectId
         +string Title
-        +int Status
-        +int Priority
+        +TaskProgressStatus Status
+        +Priority Priority
         +int Order
+        +bool IsDeleted
     }
-    
     class ProjectEnrollment {
+        +Guid Id
         +Guid ProjectId
         +Guid UserId
         +DateTime EnrolledAt
     }
-    
-    class IProjectService {
-        <<interface>>
-        +SearchProjects()
-        +EnrollUserAsync()
+    class TaskProgressStatus {
+        <<enumeration>>
+        Todo
+        InProgress
+        Completed
+    }
+    class Priority {
+        <<enumeration>>
+        Low
+        Medium
+        High
     }
 
+    %% ==========================================
+    %% CAPA DE APLICACIÓN (Interfaces)
+    %% ==========================================
+    class IProjectService {
+        <<interface>>
+        +SearchProjects(status, page, size, userId)
+        +EnrollUserAsync(projectId, userId)
+        +GetProjectSummary(projectId)
+    }
     class ITaskService {
         <<interface>>
-        +CreateTask()
-        +ChangeTaskStatus()
+        +CreateTask(request)
+        +DeleteTask(taskId)
+        +ReorderTask(taskId, request)
+        +ChangeTaskStatus(taskId, status)
     }
+
+    %% ==========================================
+    %% CAPA DE INFRAESTRUCTURA (Base de Datos)
+    %% ==========================================
+    class AppDbContext {
+        <<DbContext>>
+        +DbSet Projects
+        +DbSet Tasks
+        +DbSet ProjectEnrollments
+        +SaveChanges()
+    }
+
+    %% ==========================================
+    %% CAPA WEB / API MVC (Controladores)
+    %% ==========================================
+    class ProjectsController {
+        <<Controller>>
+        -IProjectService _projectService
+        +Index(statusEnum) IActionResult
+        +Enroll(id) IActionResult
+    }
+    class TasksController {
+        <<Controller>>
+        -ITaskService _taskService
+        +Index(projectId) IActionResult
+        +ChangeStatus(id, status) IActionResult
+    }
+
+    %% ==========================================
+    %% RELACIONES ENTRE LOS COMPONENTES
+    %% ==========================================
     
-    BaseEntity <|-- Project
-    BaseEntity <|-- TaskItem
+    %% Relación de Composición (Entidades)
     Project "1" *-- "0..*" TaskItem : contiene
-    Project "1" *-- "0..*" ProjectEnrollment : tiene inscritos
-    IProjectService ..> Project : gestiona 
+    Project "1" *-- "0..*" ProjectEnrollment : inscripciones
+    ApplicationUser "1" *-- "0..*" ProjectEnrollment : se inscribe a
+    
+    %% Relación de Agregación (Enums)
+    TaskItem o-- TaskProgressStatus : estado
+    TaskItem o-- Priority : prioridad
+
+    %% Relación de Persistencia
+    AppDbContext ..> Project : guarda
+    AppDbContext ..> TaskItem : guarda
+    AppDbContext ..> ProjectEnrollment : guarda
+
+    %% Inyección de Dependencias
+    IProjectService ..> AppDbContext : inyecta
+    ITaskService ..> AppDbContext : inyecta
+
+    ProjectsController --> IProjectService : utiliza
+    TasksController --> ITaskService : utiliza
 ```
 
 ### 3. Diagrama de Secuencia (Flujo de Cambio de Tareas)
