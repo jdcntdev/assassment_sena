@@ -13,103 +13,118 @@ namespace CoursePlatform.Tests;
 
 public class BusinessLogicTests
 {
-    private CourseDbContext GetDbContext()
+    private AppDbContext GetDbContext()
     {
-        var options = new DbContextOptionsBuilder<CourseDbContext>()
+        var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        return new CourseDbContext(options);
+        return new AppDbContext(options);
     }
 
+    // ── 1. ActivateProject con tareas → debe tener éxito ────────────
     [Fact]
-    public async Task PublishCourse_WithLessons_ShouldSucceed()
+    public async Task ActivateProject_WithTasks_ShouldSucceed()
     {
         // Arrange
         var context = GetDbContext();
-        var service = new CourseService(context);
-        var course = new Course { Title = "Test Course" };
-        context.Courses.Add(course);
-        context.Lessons.Add(new Lesson { CourseId = course.Id, Title = "Lesson 1", Order = 1 });
+        var service = new ProjectService(context);
+
+        var project = new Project { Name = "Proyecto Test", Description = "Desc" };
+        context.Projects.Add(project);
+        context.Tasks.Add(new TaskItem { ProjectId = project.Id, Title = "Tarea 1", Order = 1 });
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.PublishCourse(course.Id);
+        var result = await service.ActivateProject(project.Id);
 
         // Assert
-        Assert.Equal(CourseStatus.Published, result.Status);
+        Assert.Equal(ProjectStatus.Active, result.Status);
     }
 
+    // ── 2. ActivateProject sin tareas → debe fallar ─────────────────
     [Fact]
-    public async Task PublishCourse_WithoutLessons_ShouldFail()
+    public async Task ActivateProject_WithoutTasks_ShouldFail()
     {
         // Arrange
         var context = GetDbContext();
-        var service = new CourseService(context);
-        var course = new Course { Title = "Empty Course" };
-        context.Courses.Add(course);
+        var service = new ProjectService(context);
+
+        var project = new Project { Name = "Proyecto Vacío", Description = "Sin tareas" };
+        context.Projects.Add(project);
         await context.SaveChangesAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PublishCourse(course.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ActivateProject(project.Id));
     }
 
+    // ── 3. CompleteProject con tareas pendientes → debe fallar ──────
     [Fact]
-    public async Task CreateLesson_WithUniqueOrder_ShouldSucceed()
+    public async Task CompleteProject_WithPendingTasks_ShouldFail()
     {
         // Arrange
         var context = GetDbContext();
-        var service = new LessonService(context);
-        var course = new Course { Title = "Test Course" };
-        context.Courses.Add(course);
-        await context.SaveChangesAsync();
+        var service = new ProjectService(context);
 
-        // Act
-        var result = await service.CreateLesson(new CreateLessonRequest(course.Id, "Lesson 1", 1));
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Order);
-    }
-
-    [Fact]
-    public async Task CreateLesson_WithDuplicateOrder_ShouldFail()
-    {
-        // Arrange
-        var context = GetDbContext();
-        var service = new LessonService(context);
-        var course = new Course { Title = "Test Course" };
-        context.Courses.Add(course);
-        context.Lessons.Add(new Lesson { CourseId = course.Id, Title = "Lesson 1", Order = 1 });
+        var project = new Project { Name = "Proyecto Activo", Description = "Desc" };
+        context.Projects.Add(project);
+        context.Tasks.Add(new TaskItem
+        {
+            ProjectId = project.Id,
+            Title = "Tarea Pendiente",
+            Order = 1,
+            Status = CoursePlatform.Domain.Enums.TaskProgressStatus.Todo  // pending!
+        });
         await context.SaveChangesAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateLesson(new CreateLessonRequest(course.Id, "Lesson 2", 1)));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CompleteProject(project.Id));
     }
 
+    // ── 4. CreateTask con Order duplicado → debe fallar ─────────────
     [Fact]
-    public async Task DeleteCourse_ShouldBeSoftDelete()
+    public async Task CreateTask_WithDuplicateOrder_ShouldFail()
     {
         // Arrange
         var context = GetDbContext();
-        var service = new CourseService(context);
-        var course = new Course { Title = "Delete Me" };
-        context.Courses.Add(course);
+        var projectService = new ProjectService(context);
+        var taskService = new TaskService(context);
+
+        var project = new Project { Name = "Proyecto Test", Description = "Desc" };
+        context.Projects.Add(project);
+        context.Tasks.Add(new TaskItem { ProjectId = project.Id, Title = "Tarea 1", Order = 1 });
+        await context.SaveChangesAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => taskService.CreateTask(new CreateTaskRequest(project.Id, "Tarea Duplicada", Priority.Low, 1)));
+    }
+
+    // ── 5. DeleteProject → debe ser SoftDelete ───────────────────────
+    [Fact]
+    public async Task DeleteProject_ShouldBeDelete()
+    {
+        // Arrange
+        var context = GetDbContext();
+        var service = new ProjectService(context);
+
+        var project = new Project { Name = "Proyecto a Eliminar", Description = "Desc" };
+        context.Projects.Add(project);
         await context.SaveChangesAsync();
 
         // Act
-        await service.DeleteCourse(course.Id);
+        await service.DeleteProject(project.Id);
 
-        // Assert
-        // We need a context WITHOUT the global query filter to check if it's actually in the DB with IsDeleted = true
-        // But for InMemory, we can check the tracker or a separate query ignore the filters if possible.
-        // Or simply query using context with IgnoreQueryFilters()
-        var deletedCourse = await context.Courses.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == course.Id);
-        
-        Assert.NotNull(deletedCourse);
-        Assert.True(deletedCourse.IsDeleted);
+        // Assert: con filtro global (soft delete) no debe encontrarse
+        var found = await context.Projects.FirstOrDefaultAsync(p => p.Id == project.Id);
+        Assert.Null(found);
 
-        // Check it's NOT found with filters
-        var countFound = await context.Courses.CountAsync();
-        Assert.Equal(0, countFound);
+        // Assert: sin filtro debe estar con IsDeleted = true
+        var deleted = await context.Projects
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == project.Id);
+        Assert.NotNull(deleted);
+        Assert.True(deleted.IsDeleted);
     }
 }

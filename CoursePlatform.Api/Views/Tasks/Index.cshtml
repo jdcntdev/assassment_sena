@@ -1,0 +1,122 @@
+@model IEnumerable<CoursePlatform.Application.DTOs.TaskItemDto>
+@using CoursePlatform.Domain.Enums
+@{ 
+    ViewData["Title"] = "- Tareas de " + ViewData["ProjectName"]; 
+    var projectId = ViewData["ProjectId"];
+    var projectStatus = ViewData["ProjectStatus"];
+    bool isAdmin = User.IsInRole("Admin");
+    var taskList = Model.ToList();
+}
+
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; margin-bottom: 24px;">
+    <a href="/Projects" style="color: #94a3b8; text-decoration: none; font-weight: 600;">← Proyectos</a>
+    <span style="opacity: 0.3;">/</span>
+    <span style="color: #f1f5f9; font-weight: 600;">@ViewData["ProjectName"]</span>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+    <div>
+        <h1 class="page-title">Gestión de Tareas</h1>
+        <p class="page-subtitle" style="margin-bottom:0">
+            @taskList.Count total —
+            <span style="color: var(--success);">@taskList.Count(t => t.Status == TaskProgressStatus.Completed) completadas</span> /
+            <span style="color: #f59e0b;">@taskList.Count(t => t.Status == TaskProgressStatus.InProgress) en proceso</span> /
+            <span style="color: #94a3b8;">@taskList.Count(t => t.Status == TaskProgressStatus.Todo) por hacer</span>
+        </p>
+    </div>
+    @if (isAdmin)
+    {
+        <a href="/Tasks/Create/@projectId" class="btn btn-primary">+ Nueva Tarea</a>
+    }
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div style="background: rgba(248,113,113,0.1); color: var(--danger); padding: 12px 16px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(248,113,113,0.2); margin-bottom: 24px;">
+        @TempData["Error"]
+    </div>
+}
+
+<div style="display: flex; flex-direction: column; gap: 12px;">
+    @for (int i = 0; i < taskList.Count; i++)
+    {
+        var t = taskList[i];
+        string cardOpacity = t.Status == TaskProgressStatus.Completed ? "opacity: 0.65;" : "";
+        string statusColor = t.Status == TaskProgressStatus.Completed ? "var(--success)" 
+                           : t.Status == TaskProgressStatus.InProgress ? "#f59e0b" : "#64748b";
+        string statusIcon = t.Status == TaskProgressStatus.Completed ? "✔" 
+                          : t.Status == TaskProgressStatus.InProgress ? "⏳" : "○";
+        string statusLabel = t.Status == TaskProgressStatus.Completed ? "Completada" 
+                           : t.Status == TaskProgressStatus.InProgress ? "En Proceso" : "Por Hacer";
+
+        <div class="premium-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; @cardOpacity">
+            
+            @* Order badge *@
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #64748b; flex-shrink: 0;">
+                @t.Order
+            </div>
+
+            @* Status icon *@
+            <div style="font-size: 20px; color: @statusColor; flex-shrink: 0; width: 24px; text-align: center;">@statusIcon</div>
+
+            @* Task Info *@
+            <div style="flex: 1; min-width: 0;">
+                <h4 style="font-size: 15px; font-weight: 700; color: @(t.Status == TaskProgressStatus.Completed ? "#64748b" : "#f1f5f9"); text-decoration: @(t.Status == TaskProgressStatus.Completed ? "line-through" : "none"); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@t.Title</h4>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <span class="badge badge-@(t.Priority.ToString().ToLower())" style="font-size: 9px; padding: 2px 8px;">@t.Priority</span>
+                    <span style="font-size: 11px; color: @statusColor; font-weight: 600;">@statusLabel</span>
+                </div>
+            </div>
+
+            @* Status change form (all authenticated, enrolled users) *@
+            <form action="/Tasks/ChangeStatus/@projectId/@t.Id" method="post" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <select name="status" onchange="this.form.submit()" 
+                    style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: @statusColor; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; outline: none;">
+                    <option value="Todo" selected="@(t.Status == TaskProgressStatus.Todo ? "selected" : null)">○ Por Hacer</option>
+                    <option value="InProgress" selected="@(t.Status == TaskProgressStatus.InProgress ? "selected" : null)">⏳ En Proceso</option>
+                    <option value="Completed" selected="@(t.Status == TaskProgressStatus.Completed ? "selected" : null)">✔ Completada</option>
+                </select>
+            </form>
+
+            @* Admin controls: reorder + edit/delete *@
+            @if (isAdmin)
+            {
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                    <div style="display: flex; flex-direction: column; gap: 1px;">
+                        @if (i > 0)
+                        {
+                            var up = taskList[i - 1];
+                            <form action="/Tasks/Reorder/@projectId/@t.Id" method="post" style="margin:0;">
+                                <input type="hidden" name="newOrder" value="@up.Order" />
+                                <button title="Subir" style="background:none; border:none; color: #64748b; cursor:pointer; font-size: 13px; padding: 1px 4px; line-height:1;">▲</button>
+                            </form>
+                        }
+                        @if (i < taskList.Count - 1)
+                        {
+                            var down = taskList[i + 1];
+                            <form action="/Tasks/Reorder/@projectId/@t.Id" method="post" style="margin:0;">
+                                <input type="hidden" name="newOrder" value="@down.Order" />
+                                <button title="Bajar" style="background:none; border:none; color: #64748b; cursor:pointer; font-size: 13px; padding: 1px 4px; line-height:1;">▼</button>
+                            </form>
+                        }
+                    </div>
+                    <a href="/Tasks/Edit/@projectId/@t.Id" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">✏️</a>
+                    <form action="/Tasks/Delete/@projectId/@t.Id" method="post" onsubmit="return confirm('¿Eliminar esta tarea?');" style="margin:0;">
+                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">🗑</button>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (!taskList.Any())
+{
+    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
+        <p style="color: var(--text-secondary); font-size: 15px;">Este proyecto aún no tiene tareas.</p>
+        @if (isAdmin)
+        {
+            <a href="/Tasks/Create/@projectId" class="btn btn-primary" style="margin-top: 16px; display: inline-block;">Crear primera tarea</a>
+        }
+    </div>
+}

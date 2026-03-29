@@ -1,0 +1,44 @@
+@using CoursePlatform.Domain.Enums
+@model CoursePlatform.Api.Controllers.Web.TaskUpdateViewModel
+@{ ViewData["Title"] = "- Editar Tarea"; var projectId = ViewData["ProjectId"]; var taskId = ViewData["TaskId"]; }
+
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; margin-bottom: 24px;">
+    <a href="/Tasks/Index/@projectId" style="color: #94a3b8; text-decoration: none; font-weight: 600;">🡠 Volver a Tareas</a>
+</div>
+
+<h1 class="page-title">Editar Tarea</h1>
+
+<div class="premium-card" style="max-width: 500px;">
+    <form asp-action="Edit" asp-route-projectId="@projectId" asp-route-taskId="@taskId" method="post">
+        
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div style="background: rgba(248,113,113,0.1); color: var(--danger); padding: 10px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.2); margin-bottom: 16px; font-size: 13px; font-weight: 600;">
+                @Html.ValidationSummary(false, "")
+            </div>
+        }
+
+        <div class="input-group">
+            <label>Título de la Tarea</label>
+            <input asp-for="Title" required />
+        </div>
+        <div class="input-group">
+            <label>Prioridad</label>
+            <select asp-for="Priority">
+                <option value="@Priority.Low">Baja</option>
+                <option value="@Priority.Medium">Media</option>
+                <option value="@Priority.High">Alta</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Orden</label>
+            <input asp-for="Order" type="number" min="1" required />
+            <span style="font-size: 11px; color: var(--warning); margin-top:4px;">Debe ser único en el proyecto.</span>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+            <a href="/Tasks/Index/@projectId" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Cambios</button>
+        </div>
+    </form>
+</div>

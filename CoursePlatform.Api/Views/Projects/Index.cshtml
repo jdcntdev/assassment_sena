@@ -1,0 +1,143 @@
+@model IEnumerable<CoursePlatform.Application.DTOs.ProjectDto>
+@using CoursePlatform.Domain.Enums
+@{ 
+    ViewData["Title"] = "- Proyectos"; 
+    var status = ViewData["CurrentStatus"] as string; 
+    int pageNo = (int)ViewData["CurrentPage"];
+    int pageSize = (int)ViewData["PageSize"];
+    int total = (int)ViewData["TotalCount"];
+    int totalPages = (int)Math.Ceiling(total / (double)pageSize);
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+        <h1 class="page-title">Explorar Proyectos</h1>
+        <p class="page-subtitle" style="margin-bottom:0">@total proyectos en total</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap:wrap;">
+        @if (TempData["Error"] != null)
+        {
+            <div style="background: rgba(248,113,113,0.1); color: var(--danger); padding: 8px 16px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(248,113,113,0.2);">
+                @TempData["Error"]
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div style="background: rgba(34,197,94,0.1); color: var(--success); padding: 8px 16px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(34,197,94,0.2);">
+                @TempData["Success"]
+            </div>
+        }
+        @if (isAdmin)
+        {
+            <a href="/Projects/Create" class="btn btn-primary">+ Nuevo Proyecto</a>
+        }
+    </div>
+</div>
+
+<form method="get" style="display: flex; gap: 12px; margin-bottom: 24px;">
+    <div class="input-group" style="margin-bottom:0; flex:1; max-width: 200px;">
+        <select name="status" onchange="this.form.submit()">
+            <option value="">Todos los estados</option>
+            <option value="Draft" selected='@(status == "Draft")'>Borrador</option>
+            <option value="Active" selected='@(status == "Active")'>Activo</option>
+            <option value="Completed" selected='@(status == "Completed")'>Completado</option>
+        </select>
+    </div>
+</form>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+    @foreach(var p in Model)
+    {
+        <div class="premium-card" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge badge-@(p.Status.ToString().ToLower())">● @(p.Status == ProjectStatus.Draft ? "Borrador" : p.Status == ProjectStatus.Active ? "Activo" : "Completado")</span>
+                @if (isAdmin)
+                {
+                    <div style="display: flex; gap: 6px;">
+                        <a href="/Projects/Edit/@p.Id" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">✏️ Editar</a>
+                        <form action="/Projects/Delete" method="post" onsubmit="return confirm('¿Eliminar este proyecto?');" style="margin:0;">
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">🗑</button>
+                        </form>
+                    </div>
+                }
+            </div>
+            
+            <div>
+                <h3 style="font-size: 17px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px;">@p.Name</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5;">@p.Description</p>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Progreso</span>
+                    <span style="font-size: 13px; font-weight: 800; color: @(p.CompletedTaskCount == p.TaskCount && p.TaskCount > 0 ? "var(--success)" : "var(--accent-color)")">@p.CompletedTaskCount / @p.TaskCount tareas</span>
+                </div>
+                @if (p.TaskCount > 0)
+                {
+                    var pct = (int)((double)p.CompletedTaskCount / p.TaskCount * 100);
+                    <div style="height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+                        <div style="height: 100%; width: @pct%; background: linear-gradient(90deg, var(--accent-color), var(--success)); border-radius: 3px; transition: width 0.5s ease;"></div>
+                    </div>
+                }
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap;">
+                <a href="/Tasks/Index/@p.Id" class="btn btn-secondary" style="flex: 1; height: 38px; min-width: 80px; display:flex; align-items:center; justify-content:center;">Ver Tareas</a>
+
+                @if (isAdmin)
+                {
+                    if (p.Status == ProjectStatus.Draft)
+                    {
+                        <form action="/Projects/Activate" method="post" style="flex:1; min-width: 80px;" onsubmit="return confirm('¿Activar este proyecto? Debe tener al menos 1 tarea.');">
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button class="btn btn-primary" style="width: 100%; height: 38px;">▶ Activar</button>
+                        </form>
+                    }
+                    else if (p.Status == ProjectStatus.Active)
+                    {
+                        <form action="/Projects/Complete" method="post" style="flex:1; min-width: 80px;" onsubmit="return confirm('¿Completar proyecto? Todas las tareas deben estar completadas.');">
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button class="btn btn-primary" style="width: 100%; height: 38px; background: var(--success); color: #000;">✔ Completar</button>
+                        </form>
+                    }
+                }
+                else if (p.Status == ProjectStatus.Active)
+                {
+                    if (!p.IsEnrolled)
+                    {
+                        <form action="/Projects/Enroll" method="post" style="flex:1; min-width: 80px;">
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button class="btn btn-primary" style="width: 100%; height: 38px;">⭐ Inscribirse</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="badge" style="display:flex; align-items:center; padding: 0 14px; height: 38px; background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); border-radius: 8px; font-size: 11px; font-weight: 700;">✔ Inscrito</span>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
+        <h3 style="color: var(--text-secondary);">No hay proyectos disponibles</h3>
+        @if (isAdmin)
+        {
+            <a href="/Projects/Create" class="btn btn-primary" style="margin-top: 16px; display: inline-block;">Crear tu primer proyecto</a>
+        }
+    </div>
+}
+
+@if (totalPages > 1)
+{
+    <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: center; align-items: center;">
+        @if (pageNo > 1) { <a href="?page=@(pageNo-1)&status=@status" class="btn btn-secondary">← Anterior</a> }
+        <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">Página @pageNo de @totalPages</span>
+        @if (pageNo < totalPages) { <a href="?page=@(pageNo+1)&status=@status" class="btn btn-secondary">Siguiente →</a> }
+    </div>
+}

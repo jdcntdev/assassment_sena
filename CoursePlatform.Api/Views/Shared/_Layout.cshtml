@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SENA Projects @ViewData["Title"]</title>
+    <!-- Google Fonts for modern aesthetics -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </div>
+            <div>
+                <h2 class="brand-title">SENA</h2>
+                <h3 class="brand-subtitle">Projects</h3>
+            </div>
+        </div>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="user-card">
+                <div class="user-avatar">@User.Identity.Name?.Substring(0,1).ToUpper()</div>
+                <div class="user-info">
+                    <span class="user-name">@User.Identity.Name</span>
+                    <span class="user-role">@(User.IsInRole("Admin") ? "Administrador" : "Usuario")</span>
+                </div>
+            </div>
+
+            <ul class="nav-links">
+                <li><a href="/Projects">Proyectos</a></li>
+            </ul>
+
+            <form action="/Auth/Logout" method="post" class="logout-form">
+                <button type="submit" class="btn btn-logout">Cerrar Sesión</button>
+            </form>
+        }
+    </nav>
+
+    <main class="main-content">
+        <!-- Ambient Background Orbs -->
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        
+        <div class="content-wrapper">
+            @RenderBody()
+        </div>
+    </main>
+</body>
+</html>

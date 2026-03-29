@@ -1,0 +1,22 @@
+@model CoursePlatform.Api.Controllers.Web.ProjectUpdateViewModel
+@{ ViewData["Title"] = "- Editar Proyecto"; }
+
+<h1 class="page-title">Editar Proyecto</h1>
+<p class="page-subtitle">Modifica los detalles del proyecto</p>
+
+<div class="premium-card" style="max-width: 500px;">
+    <form asp-action="Edit" method="post">
+        <div class="input-group">
+            <label>Nombre del Proyecto</label>
+            <input asp-for="Name" required />
+        </div>
+        <div class="input-group">
+            <label>Descripción</label>
+            <input asp-for="Description" />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+            <a href="/Projects" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Actualizar Proyecto</button>
+        </div>
+    </form>
+</div>

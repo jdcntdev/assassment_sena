@@ -1,0 +1,22 @@
+@model CoursePlatform.Api.Controllers.Web.ProjectCreateViewModel
+@{ ViewData["Title"] = "- Nuevo Proyecto"; }
+
+<h1 class="page-title">Crear Proyecto</h1>
+<p class="page-subtitle">Añade un nuevo proyecto a la plataforma</p>
+
+<div class="premium-card" style="max-width: 500px;">
+    <form asp-action="Create" method="post">
+        <div class="input-group">
+            <label>Nombre del Proyecto</label>
+            <input asp-for="Name" required placeholder="Ej: Migración Frontend" />
+        </div>
+        <div class="input-group">
+            <label>Descripción</label>
+            <input asp-for="Description" placeholder="Breve descripción..." />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+            <a href="/Projects" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Proyecto</button>
+        </div>
+    </form>
+</div>
